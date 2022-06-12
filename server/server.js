@@ -85,6 +85,13 @@ const listener = function (req, res) {
     });
 }
 
+const logVerbosity = (process.argv[3] || 10) * 1;
+let debugLog = (message, level) => {
+    if (logVerbosity >= level) {
+        console.log(`LL${level}: ${message}`);
+    }
+}
+
 const server = http.createServer(listener);
 const io = new Server(server);
 
@@ -138,6 +145,7 @@ function Game(code) {
     this.onShuffle = () => {};
     this.shuffle = () => {
         this.deck = JSON.parse(JSON.stringify(templateDeck));
+        debugLog('Game: Shuffled deck', 3);
         this.onShuffle();
     }
     this.shuffle();
@@ -168,6 +176,7 @@ function Game(code) {
         if (this.deck[color][number] > 0) {
             this.deck[color][number] -= 1;
             this.deck.total -= 1;
+            debugLog(`Game: Player drew card ${color}${number}`, 3);
             return color + number;
         } else {
             // Once there's a somewhat low number of cards, refill the deck
@@ -220,6 +229,7 @@ function Game(code) {
         }
         this.players.push(player);
         this.send('set players', this.getPlayers());
+        debugLog('Game: Added new player', 4);
     }
     this.check = () => {
         for (const player in this.players) {
@@ -233,6 +243,7 @@ function Game(code) {
         this.deck[tc.color][tc.number] -= 1;
     }
     this.send = (message, content) => {
+        debugLog(`Game: Sent message ${message} to players`, 5);
         for (const player of this.players) {
             player.socket.emit(message, content);
         }
@@ -256,6 +267,7 @@ function Game(code) {
 
         const set = this.currentPlayer;
         if (static) this.currentPlayer = prev;
+        else debugLog('Game: Moved to next player', 3);
         return set;
     }
     this.advance = () => {
@@ -270,6 +282,7 @@ function Game(code) {
             this.players[0].socket.emit('show restart');
         }
 
+        else debugLog('Game: Advancing to next player', 2);
         this.nextPlayer();
 
 
@@ -305,13 +318,20 @@ function Game(code) {
 
     this.voluntarySkip = (player) => {
         // You can't just skip someone else's turn
-        if (!this.isPlayersTurn(player)) return;
+        if (!this.isPlayersTurn(player)) {
+            debugLog('Game: Player tried to v-skip on others turn', 3);
+            return;
+        }
 
         // If the game rules prohibit it
-        if (this.rules.drawToMatch || this.rules.mustPlayMatch) return false;
+        if ((this.rules.drawToMatch || this.rules.mustPlayMatch) && !this.drawStack.amount) {
+            debugLog('Game: Player tried to v-skip with gamerules that prohibit it', 3);
+            return false;
+        }
 
         // If there's a card stack
         if (this.rules.stackDrawCards && this.drawStack.amount) {
+            debugLog('Game: Player v-skipped when there was a stack', 3);
 
             for (let i = 0; i < this.drawStack.amount; i++) {
                 player.hand.push(this.draw());
@@ -329,19 +349,20 @@ function Game(code) {
         this.advance();
     }
     this.callUno = (player) => {
-        console.log('attempted uno call');
+        debugLog('Game: Player attempted uno call', 4);
+
         if (player.unoTimer) {
             player.unoTimer = 0;
 
             this.send('set players', this.getPlayers());
-            console.log('called self!');
+            debugLog('Game: Player called uno on self', 3);
         } else {
             for (let pl of this.players) {
                 // two seconds of grace
                 if (pl.unoTimer &&
                     Date.now() - pl.unoTimer > 2000) {
 
-                    console.log('called other');
+                    debugLog('Game: Player called uno on other player', 3);
                         
                     pl.unoTimer = 0;
                     // draw two as penalty
@@ -356,9 +377,15 @@ function Game(code) {
     }
 
     this.play = (player, card) => {
-        if (!this.isPlayersTurn(player)) return;
+        if (!this.isPlayersTurn(player)) {
+            debugLog('Game: Player tried to play when not their turn', 3);
+            return;
+        }
         // don't allow playing with only one player
-        if (this.players.length < 2) return;
+        if (this.players.length < 2) {
+            debugLog('Game: Player tried to play but has no friends', 3);
+            return;
+        }
 
         const top = this.parseCard(this.topCard);
         let played = this.parseCard(card);
@@ -370,16 +397,19 @@ function Game(code) {
         } else if (this.topCard.startsWith('wild')) {
             if (!this.topCard.endsWith(played.color)) {
                 // You must play cards that match the wild card's color
+                debugLog('Game: Player tried to play non-matching card (on wild)', 3);
                 return;
             }
         } else if (top.color !== played.color && top.number !== played.number) {
             // You must play cards that match either color or number
+            debugLog('Game: Player tried to play non-matching card', 3);
             return;
         }
 
         const index = player.hand.indexOf(card.replace(/[0-9].*/g, "") + played.number);
         if (index < 0) {
             // You have to have the card to play it
+            debugLog('Game: Player tried to play a card they don\'t have', 3);
             return;
         }
 
@@ -494,6 +524,8 @@ function Game(code) {
                 return;
             }
         }
+        
+        debugLog(`Game: Player played ${card} on ${this.topCard}`, 3);
 
         this.topCard = card;
         player.hand.splice(index, 1);
@@ -502,6 +534,7 @@ function Game(code) {
             && this.rules.noEndOnWilds
             && played.color === 'wild') {
             // Add another card if you're not allowed to go out on wilds
+            debugLog(`Game: Player tried to go out with a wild in a prohibited gamemode`, 3);
             player.hand.push(this.draw());
         }
 
@@ -513,14 +546,19 @@ function Game(code) {
         this.advance();
     }
     this.drawFor = (player) => {
-        if (!this.isPlayersTurn(player)) return;
+        if (!this.isPlayersTurn(player)){
+            debugLog(`Game: Player tried to draw when it wasn't their turn`, 3);
+            return;
+        }
 
         // If it's not draw to match, only draw once
         if (this.currentPlayerDrew == true && !this.rules.drawToMatch) {
+            debugLog(`Game: Player tried to draw multiple times w/o drawToMatch enabled`, 3);
             return;
         }
         // You can't draw cards when there's a stack
         if (this.drawStack.amount) {
+            debugLog(`Game: Player tried to draw cards when cards were stacked`, 3);
             return;
         }
 
@@ -529,6 +567,7 @@ function Game(code) {
             for (const card of player.hand) {
                 // And the player can play a card, don't let them draw
                 if (this.doesCardMatch(card)) {
+                    debugLog(`Game: Player tried to draw cards but had a match w/ mustPlayMatch enabled`, 3);
                     return;
                 }
             }
@@ -538,6 +577,8 @@ function Game(code) {
 
         const card = this.draw();
         player.hand.push(card);
+
+        debugLog(`Game: Player drew ${card}`, 3);
 
         player.send('cards', player.hand);
         this.send('set players', this.getPlayers());
@@ -587,6 +628,8 @@ function Game(code) {
             player.socket.emit('cards', player.hand);
         }
 
+        debugLog(`Game: Restarted game`, 3);
+
         this.send('set players', this.getPlayers());
     }
 }
@@ -602,7 +645,7 @@ let initiateNewPlayer = (player, game) => {
 }
 
 io.on('connection', (socket) => {
-    console.log('Game: User connected');
+    debugLog('Game: User connected', 1);
     let player = new Player(socket);
     let currentGame;
 
@@ -626,12 +669,15 @@ io.on('connection', (socket) => {
             if (currentGame.code && currentGame.players.length === 0) {
                 delete activeGames[currentGame.code];
                 currentGame = {};
+                debugLog('Game: Game removed (all players disconnected)', 1);
             }
+            debugLog('Game: User marked as disconnected', 1);
         }
 
-        console.log('Game: User disconected');
+        debugLog('Game: User disconected', 3);
     });
     socket.on('set name', (name) => {
+        debugLog('Game: User set name', 4);
         player.name = name;
         socket.emit('ack name', name);
     });
@@ -644,7 +690,7 @@ io.on('connection', (socket) => {
             activeGames[code].newPlayer(player);
             currentGame = activeGames[code];
             initiateNewPlayer(player, currentGame);
-            console.log('Game: User joined game: ' + code);
+            debugLog('Game: User joined game: ' + code, 2);
 
         } else if (activeGames[code]) {
             // try to reconnect .. maybe they were disconnected.
@@ -661,7 +707,7 @@ io.on('connection', (socket) => {
                     currentGame.send('set players', currentGame.getPlayers());
 
                     initiateNewPlayer(player, currentGame);
-                    console.log('Game: User rejoined game: ' + code);
+                    debugLog('Game: User rejoined game: ' + code, 2);
                     return;
                 }
             }
@@ -684,7 +730,7 @@ io.on('connection', (socket) => {
         currentGame = activeGames[code];
         currentGame.rules = rules;
         initiateNewPlayer(player, currentGame);
-        console.log('Game: User created new game: ' + code);
+        debugLog('Game: User created new game: ' + code, 2);
     });
 
     /* Game actions */
