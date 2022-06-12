@@ -10,7 +10,7 @@ const listener = function (req, res) {
         // prevent caching of the editor, as it breaks it in firefox and possibly other browsers.
         res.setHeader("Cache-Control", "no-store, must-revalidate");
     }
-    fs.readFile(__dirname.replace("\\server", "") + "/public" + req.url.replace(/(\\|\/)server/g, ""), function (err,data) {
+    fs.readFile(__dirname.replace(/(\\|\/)server/g, "") + "/public" + req.url.replace(/(\\|\/)server/g, ""), function (err,data) {
         console.log("Page Request: " + req.url.replace(/\\server/g, ""));
         // 404
         if (err) {
