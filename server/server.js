@@ -550,6 +550,11 @@ function Game(code) {
             debugLog(`Game: Player tried to draw when it wasn't their turn`, 3);
             return;
         }
+        // don't allow playing with only one player
+        if (this.players.length < 2) {
+            debugLog('Game: Player tried to play (draw) but has no friends', 3);
+            return;
+        }
 
         // If it's not draw to match, only draw once
         if (this.currentPlayerDrew == true && !this.rules.drawToMatch) {
