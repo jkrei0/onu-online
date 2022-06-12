@@ -1,0 +1,16 @@
+{
+  "name": "uno",
+  "version": "1.0.0",
+  "description": "Onu is an online clone of the card game Uno.",
+  "main": "server/server.js",
+  "dependencies": {
+    "socket.io": "^4.5.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server/server.js"
+  },
+  "author": "jkrei0",
+  "license": "UNLICENSED"
+}
