@@ -716,5 +716,7 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(8087);
-console.log("Server listening on localhost:8087");
+const port = process.argv[2] || 8080;
+
+server.listen(port);
+console.log("Server listening on port " + port );
