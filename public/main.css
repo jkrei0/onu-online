@@ -230,6 +230,10 @@ button svg {
     overflow: auto;
     max-width: 80vw;
 }
+.card-row {
+    flex-wrap: nowrap;
+    overflow: auto;
+}
 .other-players {
     gap: max(2vw, 25px);
     border: none;
@@ -345,7 +349,7 @@ button svg {
     background: var(--dark);
     transition: 0.5s;
     overflow: hidden;
-    min-width: 60px;
+    min-width: 75px;
 }
 
 :is(.discard-pile, .draw-pile, .card-row span) svg {
