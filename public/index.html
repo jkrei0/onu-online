@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ONU! The Card Game</title>
+        <link rel="stylesheet" href="/main.css">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+        <script src="/vue3.js"></script>
+        <script src="/socket.io.js"></script>
+    </head>
+    <body>
+        <div class="main" id="welcome">
+            <div class="other-players nofill">
+                <span>
+                    <h2>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-files" viewBox="0 0 16 16">
+                            <path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zM3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z"/>
+                        </svg>
+                        Welcome to ONU!
+                    </h2>
+                    Enter your name, then join or create a game!
+                </span>
+            </div>
+            <div class="card-deck">
+                <input id="name-code-input" class="discard-pile" color="yellow" :placeholder="namePlaceholder">
+                <div class="draw-pile" tabindex="0" v-if="showDrawButton" @keypress.prevent="joinWithCode" @click="joinWithCode">{{drawButtonText}}</div>
+            </div>
+            <div class="deck wild-color-selection" :open="showGameOptions">
+                <h2>New Game Options</h2>
+                <div class="card-row smaller-text">
+                    <span color="red" tabindex="0" @keypress.prevent="rules.drawToMatch = !rules.drawToMatch" @click="rules.drawToMatch = !rules.drawToMatch">
+                        Draw To Match<br>
+                        <b>[{{ rules.drawToMatch === true ? 'Yes' : 'No' }}]</b>
+                    </span>
+                    <span color="blue" tabindex="0" @keypress.prevent="rules.mustPlayMatch = !rules.mustPlayMatch" @click="rules.mustPlayMatch = !rules.mustPlayMatch">
+                        Force Play Valid Cards<br>
+                        <b>[{{ rules.mustPlayMatch === true ? 'Yes' : 'No' }}]</b>
+                    </span>
+                    <span color="green" tabindex="0" @keypress.prevent="rules.stackDrawCards = !rules.stackDrawCards" @click="rules.stackDrawCards = !rules.stackDrawCards">
+                        Stack +2s and +4s<br>
+                        <b>[{{ rules.stackDrawCards === true ? 'Yes' : 'No' }}]</b>
+                    </span>
+                    <span color="yellow" tabindex="0" @keypress.prevent="rules.noEndOnWilds = !rules.noEndOnWilds" @click="rules.noEndOnWilds = !rules.noEndOnWilds">
+                        Allow ending on Wilds<br>
+                        <b>[{{ rules.noEndOnWilds === true ? 'No' : 'Yes' }}]</b>
+                    </span>
+                </div>
+            </div>
+            <div class="deck">
+                <h2>Game <button @click="showGameOptions = !showGameOptions">{{ showGameOptions ? 'Hide Options' : 'Game Options' }}</button></h2>
+                <div class="card-row">
+                    <span color="wild" tabindex="0" class="nomargin lg" @keypress.prevent="newGame" @click="newGame">
+                        <svg fill="currentColor" class="bi bi-x-diamond-fill" viewBox="0 0 16 16" xmlns:svg="http://www.w3.org/2000/svg">
+                        <path style="fill:#00cc00;fill-opacity:1" d="M 3.34,11.954 7.292,8 3.339,4.046 0.435,6.951 c -0.58,0.58 -0.58,1.519 0,2.098 l 2.904,2.905 z" id="path1021"/>
+                        <path style="fill:#ffcc00;fill-opacity:1" d="M 11.954,12.66 8,8.708 4.046,12.662 6.951,15.566 c 0.58,0.58 1.519,0.58 2.098,0 l 2.905,-2.904 z" id="path1019"/>
+                        <path style="fill:#6688ff;fill-opacity:1" d="M 12.66,4.046 8.708,8 l 3.954,3.954 2.904,-2.905 c 0.58,-0.58 0.58,-1.519 0,-2.098 L 12.662,4.046 Z" id="path1017"/>
+                        <path style="fill:#ff2222;fill-opacity:1" d="m 9.05,0.435 c -0.58,-0.58 -1.52,-0.58 -2.1,0 L 4.047,3.339 8,7.293 11.954,3.339 9.049,0.435 Z" id="path2"/>
+                        </svg>
+                        New
+                    </span>
+                    <span color="blue" tabindex="0" class="nomargin lg" @keypress.prevent="joinGame" @click="joinGame">
+                        Join
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main" id="game">
+            <div class="game-code">{{ gameCode }}</div>
+            <div class="other-players">
+                <span v-for="(player, index) in players" :class="(index === currentPlayer ? 'current ' : '') + (player.name === name ? 'self ' : '') + (player.connected ? '' : 'disconnected')">
+                    <span class="hidden-cards">
+                        <svg v-for="x in player.hand" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-file" viewBox="0 0 16 16">
+                            <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/>
+                        </svg>
+                    </span>
+                    {{ player.name + (player.connected ? '' : ' [disconnected]') }}
+                </span>
+            </div>
+            <div class="card-deck" v-if="inProgress">
+                <div class="discard-pile fixed-size" :color="prevDiscard.color === 'wild' ? prevDiscard.wildColor : prevDiscard.color">
+                    <div class="discard-pile fixed-size bloop" :color="discardPile.color === 'wild' ? discardPile.wildColor : discardPile.color">
+                        <svg v-if="discardPile.color === 'wild'" fill="currentColor" class="bi bi-x-diamond-fill" viewBox="0 0 16 16" xmlns:svg="http://www.w3.org/2000/svg">
+                            <path style="fill:#00cc00;fill-opacity:1" d="M 3.34,11.954 7.292,8 3.339,4.046 0.435,6.951 c -0.58,0.58 -0.58,1.519 0,2.098 l 2.904,2.905 z" id="path1021"/>
+                            <path style="fill:#ffcc00;fill-opacity:1" d="M 11.954,12.66 8,8.708 4.046,12.662 6.951,15.566 c 0.58,0.58 1.519,0.58 2.098,0 l 2.905,-2.904 z" id="path1019"/>
+                            <path style="fill:#6688ff;fill-opacity:1" d="M 12.66,4.046 8.708,8 l 3.954,3.954 2.904,-2.905 c 0.58,-0.58 0.58,-1.519 0,-2.098 L 12.662,4.046 Z" id="path1017"/>
+                            <path style="fill:#ff2222;fill-opacity:1" d="m 9.05,0.435 c -0.58,-0.58 -1.52,-0.58 -2.1,0 L 4.047,3.339 8,7.293 11.954,3.339 9.049,0.435 Z" id="path2"/>
+                        </svg>
+                        <svg v-if="discardPile.number === 11" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                        </svg>
+                        <svg v-if="discardPile.number === 10" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-slash-circle" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M11.354 4.646a.5.5 0 0 0-.708 0l-6 6a.5.5 0 0 0 .708.708l6-6a.5.5 0 0 0 0-.708z"/>
+                        </svg>
+                        <svg v-if="discardPile.number === 12" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-files" viewBox="0 0 16 16">
+                            <path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zM3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z"/>
+                        </svg>
+                        {{ cardSymbol(discardPile) }}
+                    </div>
+                    <svg v-if="prevDiscard.color === 'wild'" fill="currentColor" class="bi bi-x-diamond-fill" viewBox="0 0 16 16" xmlns:svg="http://www.w3.org/2000/svg">
+                        <path style="fill:#00cc00;fill-opacity:1" d="M 3.34,11.954 7.292,8 3.339,4.046 0.435,6.951 c -0.58,0.58 -0.58,1.519 0,2.098 l 2.904,2.905 z" id="path1021"/>
+                        <path style="fill:#ffcc00;fill-opacity:1" d="M 11.954,12.66 8,8.708 4.046,12.662 6.951,15.566 c 0.58,0.58 1.519,0.58 2.098,0 l 2.905,-2.904 z" id="path1019"/>
+                        <path style="fill:#6688ff;fill-opacity:1" d="M 12.66,4.046 8.708,8 l 3.954,3.954 2.904,-2.905 c 0.58,-0.58 0.58,-1.519 0,-2.098 L 12.662,4.046 Z" id="path1017"/>
+                        <path style="fill:#ff2222;fill-opacity:1" d="m 9.05,0.435 c -0.58,-0.58 -1.52,-0.58 -2.1,0 L 4.047,3.339 8,7.293 11.954,3.339 9.049,0.435 Z" id="path2"/>
+                    </svg>
+                    <svg v-if="prevDiscard.number === 11" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                        <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                        <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                    </svg>
+                    <svg v-if="prevDiscard.number === 10" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-slash-circle" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                        <path d="M11.354 4.646a.5.5 0 0 0-.708 0l-6 6a.5.5 0 0 0 .708.708l6-6a.5.5 0 0 0 0-.708z"/>
+                    </svg>
+                    <svg v-if="prevDiscard.number === 12" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-files" viewBox="0 0 16 16">
+                        <path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zM3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z"/>
+                    </svg>
+                    {{ cardSymbol(prevDiscard) }}
+                </div>
+                <div class="draw-pile fixed-size" tabindex="0" @keypress.prevent="drawCard" @click="drawCard">+{{ stackedDrawCards ? stackedDrawCards : '' }}</div>
+            </div>
+            
+            <div class="card-deck" v-if="!inProgress">
+                <div class="discard-pile" :color="prevDiscard.color === 'wild' ? prevDiscard.wildColor : prevDiscard.color">
+                    <svg v-if="prevDiscard.color === 'wild'" fill="currentColor" class="bi bi-x-diamond-fill" viewBox="0 0 16 16" xmlns:svg="http://www.w3.org/2000/svg">
+                        <path style="fill:#00cc00;fill-opacity:1" d="M 3.34,11.954 7.292,8 3.339,4.046 0.435,6.951 c -0.58,0.58 -0.58,1.519 0,2.098 l 2.904,2.905 z" id="path1021"/>
+                        <path style="fill:#ffcc00;fill-opacity:1" d="M 11.954,12.66 8,8.708 4.046,12.662 6.951,15.566 c 0.58,0.58 1.519,0.58 2.098,0 l 2.905,-2.904 z" id="path1019"/>
+                        <path style="fill:#6688ff;fill-opacity:1" d="M 12.66,4.046 8.708,8 l 3.954,3.954 2.904,-2.905 c 0.58,-0.58 0.58,-1.519 0,-2.098 L 12.662,4.046 Z" id="path1017"/>
+                        <path style="fill:#ff2222;fill-opacity:1" d="m 9.05,0.435 c -0.58,-0.58 -1.52,-0.58 -2.1,0 L 4.047,3.339 8,7.293 11.954,3.339 9.049,0.435 Z" id="path2"/>
+                    </svg>
+                    <svg v-if="prevDiscard.number === 11" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                        <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                        <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                    </svg>
+                    <svg v-if="prevDiscard.number === 10" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-slash-circle" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                        <path d="M11.354 4.646a.5.5 0 0 0-.708 0l-6 6a.5.5 0 0 0 .708.708l6-6a.5.5 0 0 0 0-.708z"/>
+                    </svg>
+                    <svg v-if="prevDiscard.number === 12" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-files" viewBox="0 0 16 16">
+                        <path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zM3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z"/>
+                    </svg>
+                    {{ centerMessage }}
+                </div>
+                <div class="draw-pile" tabindex="0" @keypress.prevent="playAgain" @click="playAgain" v-if="playAgainButton">Play Again</div>
+            </div>
+
+            <div class="deck wild-color-selection" :open="selectWildColor">
+                <h2>Choose Wild Color</h2>
+                <div class="card-row">
+                    <span color="red" tabindex="0" @keypress.prevent="playWild('red')" @click="playWild('red')">
+                        R
+                    </span>
+                    <span color="blue" tabindex="0" @keypress.prevent="playWild('blue')" @click="playWild('blue')">
+                        B
+                    </span>
+                    <span color="green" tabindex="0" @keypress.prevent="playWild('green')" @click="playWild('green')">
+                        G
+                    </span>
+                    <span color="yellow" tabindex="0" @keypress.prevent="playWild('yellow')" @click="playWild('yellow')">
+                        Y
+                    </span>
+                </div>
+            </div>
+            <div class="deck">
+                <h2>{{ isTurn ? 'Your Cards' : 'Opponent\'s Turn' }}
+                    <button v-if="showUnoButton" @keypress.prevent="callUno" @click="callUno">
+                        <svg fill="currentColor" class="bi bi-x-diamond-fill" viewBox="0 0 16 16" xmlns:svg="http://www.w3.org/2000/svg">
+                            <path style="fill:#00cc00;fill-opacity:1" d="M 3.34,11.954 7.292,8 3.339,4.046 0.435,6.951 c -0.58,0.58 -0.58,1.519 0,2.098 l 2.904,2.905 z" id="path1021"/>
+                            <path style="fill:#ffcc00;fill-opacity:1" d="M 11.954,12.66 8,8.708 4.046,12.662 6.951,15.566 c 0.58,0.58 1.519,0.58 2.098,0 l 2.905,-2.904 z" id="path1019"/>
+                            <path style="fill:#6688ff;fill-opacity:1" d="M 12.66,4.046 8.708,8 l 3.954,3.954 2.904,-2.905 c 0.58,-0.58 0.58,-1.519 0,-2.098 L 12.662,4.046 Z" id="path1017"/>
+                            <path style="fill:#ff2222;fill-opacity:1" d="m 9.05,0.435 c -0.58,-0.58 -1.52,-0.58 -2.1,0 L 4.047,3.339 8,7.293 11.954,3.339 9.049,0.435 Z" id="path2"/>
+                        </svg>
+                        Uno!
+                    </button>
+                    <button :class="allowSkipTurn || stackedDrawCards > 0 ? '' : 'hidden'" @click="skipTurn">Skip Turn</button>
+                </h2>
+                <div :class="'card-row' + (isTurn ? '' : ' is-not-turn')">
+                    <span v-for="card in hand" :color="card.color" :symbol="cardSymbol(card)" tabindex="0" @keypress.prevent="playCard(card)" @click="playCard(card)">
+                        <svg v-if="card.color === 'wild'" fill="currentColor" class="bi bi-x-diamond-fill" viewBox="0 0 16 16" xmlns:svg="http://www.w3.org/2000/svg">
+                            <path style="fill:#00cc00;fill-opacity:1" d="M 3.34,11.954 7.292,8 3.339,4.046 0.435,6.951 c -0.58,0.58 -0.58,1.519 0,2.098 l 2.904,2.905 z" id="path1021"/>
+                            <path style="fill:#ffcc00;fill-opacity:1" d="M 11.954,12.66 8,8.708 4.046,12.662 6.951,15.566 c 0.58,0.58 1.519,0.58 2.098,0 l 2.905,-2.904 z" id="path1019"/>
+                            <path style="fill:#6688ff;fill-opacity:1" d="M 12.66,4.046 8.708,8 l 3.954,3.954 2.904,-2.905 c 0.58,-0.58 0.58,-1.519 0,-2.098 L 12.662,4.046 Z" id="path1017"/>
+                            <path style="fill:#ff2222;fill-opacity:1" d="m 9.05,0.435 c -0.58,-0.58 -1.52,-0.58 -2.1,0 L 4.047,3.339 8,7.293 11.954,3.339 9.049,0.435 Z" id="path2"/>
+                        </svg>
+                        <svg v-if="card.number === 11" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                        </svg>
+                        <svg v-if="card.number === 10" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-slash-circle" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M11.354 4.646a.5.5 0 0 0-.708 0l-6 6a.5.5 0 0 0 .708.708l6-6a.5.5 0 0 0 0-.708z"/>
+                        </svg>
+                        <svg v-if="card.number === 12" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-files" viewBox="0 0 16 16">
+                            <path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zM3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z"/>
+                        </svg>
+                        {{ cardSymbol(card) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="credits">
+            ONU! by <a href="https://github.com/jkrei0/" target="_blank">github.com/<span class="color-cycle bold">jkrei0</span></a>
+        </div>
+
+        
+
+        <script src="/game.js"></script>
+    </body>
+</html>

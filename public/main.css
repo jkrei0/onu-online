@@ -1,0 +1,498 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;700&display=swap');
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+@keyframes color-cycle {
+    0% { color: #f22; }
+    20% { color: #f22; }
+    25% { color: #fc0; }
+    45% { color: #fc0; }
+    50% { color: #0c0; }
+    70% { color: #0c0; }
+    75% { color: #68f; }
+    95% { color: #68f; }
+    100% { color: #f22; }
+}
+@keyframes blur {
+    0% {
+        opacity: 1;
+        filter: blur(0);
+    }
+    100% {
+        opacity: 0.5;
+        filter: blur(1px);
+    }
+}
+@keyframes unblur {
+    0% {
+        opacity: 0.5;
+        filter: blur(1px);
+    }
+    100% {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+@keyframes pulse {
+    0% {
+        border-color: #a66;
+    }
+    50% {
+        border-color: #e66;
+    }
+    100% {
+        border-color: #a66;
+    }
+}
+
+*::selection {
+    background: transparent;
+}
+
+:root {
+    --dark: #222;
+}
+
+body {
+    padding-top: max(100vh, 640px);
+    background: #222;
+    color: white;
+    font-family: 'Baloo 2', sans-serif;
+}
+
+*[color=red] {
+    --color: #ff2222;
+}
+
+*[color=blue] {
+    --color: #6688ff;
+}
+
+*[color=green] {
+    --color: #00cc00;
+}
+
+*[color=yellow] {
+    --color: #ffcc00;
+}
+
+*[color=wild] {
+    --color: #666;
+}
+*:focus {
+    outline: 2px solid #666;
+}
+input:focus {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+.credits {
+    padding: 10px;
+    margin: 0;
+    margin-bottom: 5px;
+    font-size: 20px;
+    background: #444;
+    text-align: center;
+    border-radius: 5px;
+}
+.credits a {
+    color: white;
+    background: #333;
+    padding: 1px 12px;
+    margin: 4px;
+    border-radius: 5px;
+    transition: 0.2s;
+}
+.credits a:hover {
+    background: var(--dark);
+    text-decoration: none;
+}
+.color-cycle {
+    animation: 4s infinite color-cycle;
+}
+.bold {
+    font-weight: bold;
+}
+
+#game {
+    display: none;
+}
+
+.main {
+    background: var(--dark);
+    color: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    min-height: 640px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.deck {
+    font-family: 'Roboto Mono';
+}
+
+.deck h2 {
+    margin: 0px;
+    font-size: 22px;
+    color: #aaa;
+    position: relative;
+}
+
+.deck h2 button {
+    position: absolute;
+    right: 0;
+    bottom: -5px;
+    border: 2px solid #666;
+    border-radius: 5px;
+    background: var(--dark);
+    color: white;
+    font-family: 'Roboto Mono';
+    font-size: 16px;
+    padding: 7px 25px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.deck h2 button.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: 1s;
+}
+.deck h2 button:hover {
+    border-color: #fff;
+    bottom: -7.5px;
+    padding: 10px 25px;
+}
+
+button {
+    border: 2px solid #666;
+    border-radius: 5px;
+    background: var(--dark);
+    color: white;
+    font-family: 'Roboto Mono';
+    font-size: 16px;
+    padding: 7px 25px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+button.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: 1s;
+}
+button:hover {
+    border-color: #fff;
+    bottom: -7.5px;
+    padding: 10px 25px;
+}
+button svg {
+    position: relative;
+    height: 20px;
+    top: 2.5px;
+    left: -10px;
+}
+
+.card-deck {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+}
+
+.card-row,
+.other-players {
+    background: transparent;
+    box-sizing: border-box;
+    border: 2px solid #555;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    flex-wrap: wrap;
+    overflow: auto;
+    max-width: 80vw;
+}
+.other-players {
+    gap: max(2vw, 25px);
+    border: none;
+}
+.other-players:not(.nofill) {
+    width: 80%;
+}
+.other-players h2 {
+    margin-top: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Roboto Mono';
+    gap: 20px;
+}
+.other-players h2 svg {
+    animation: 4s infinite color-cycle;
+}
+
+.other-players span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    border: 2px solid #666;
+    padding: max(2vw, 25px);
+    font-family: 'Baloo 2';
+    border-radius: 5px;
+    font-size: 18px;
+    flex: 1;
+    transition: 0.2s;
+}
+
+.other-players span :is(svg, img) {
+    height: 40px;
+}
+
+.other-players .hidden-cards {
+    flex-direction: row;
+    border: none;
+    padding: 5px;
+    margin-bottom: 1em;
+}
+.other-players .hidden-cards svg {
+    margin: -10px;
+    background: var(--dark);
+}
+.other-players span.self {
+    outline: 2px solid #666;
+    outline-offset: 2px;
+}
+.other-players span.current {
+    border-color: #fff;
+    transition: 0.2s;
+}
+.other-players span.disconnected {
+    border-color: #a66;
+    transition: 0.2s;
+}
+
+
+.game-code {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 5px;
+    text-align: center;
+    font-size: 24px;
+    font-family: 'Roboto Mono', monospace;
+    font-weight: bold;
+    color: transparent;
+    margin: 5px;
+    transition: 0.5s;
+}
+.game-code::before {
+    content: 'Hover to show game code';
+    position: absolute;
+    left: 0;
+    right: 0;
+    font-size: 20px;
+    color: white;
+}
+.game-code:hover {
+    color: white;
+    letter-spacing: 0.3em;
+    border-bottom: 2px solid #666;
+}
+.game-code:hover::before {
+    content: '';
+}
+.game-code::selection {
+    background: #68f;
+}
+
+.discard-pile,
+.draw-pile,
+.card-row span {
+    position: relative;
+    top: 0;
+    font-family: 'Roboto Mono', monospace;
+    text-align: center;
+    font-size: 30px;
+    padding-block: 3.5vw;
+    width: calc(25px + 6vw);
+    border: 2px solid var(--color);
+    outline: 4px solid var(--dark);
+    border-radius: 5px;
+    box-sizing: border-box;
+    cursor: pointer;
+    margin-inline: -10px;
+    background: var(--dark);
+    transition: 0.5s;
+    overflow: hidden;
+    min-width: 60px;
+}
+
+:is(.discard-pile, .draw-pile, .card-row span) svg {
+    position: absolute;
+    height: 2vw;
+    top: 25px;
+    left: 25px;
+    margin: -15px;
+}
+
+.card-row.is-not-turn {
+    animation: blur 0.5s;
+    opacity: 0.8;
+    filter: blur(1px);
+}
+.card-row:not(.is-not-turn) {
+    animation: unblur 0.5s;
+    opacity: 1;
+    filter: none;
+}
+
+.card-row span:first-child {
+    margin-left: 0px;
+}
+
+.card-row span:last-child {
+    margin-right: 0px;
+}
+.card-row span[inactive] {
+    cursor: default;
+}
+
+.card-row span:not([inactive]):is(:hover, :focus) {
+    background: var(--color);
+    color: var(--dark);
+    font-weight: bold;
+    top: -10px;
+    margin-inline: 10px;
+    z-index: 1;
+}
+.card-row span.nomargin {
+    margin-inline: 4px;
+}
+.card-row span.lg {
+    width: calc(6vw + 50px);
+    min-width: 80px;
+}
+
+.card-row span[color=wild]:is(:hover, :focus) {
+    border-color: white;
+    color: white;
+    background: var(--dark);
+}
+
+.card-row span:is(:hover, :focus):is([symbol=W], [symbol='+4'], [symbol=R]) svg {
+    animation-name: spin;
+    animation-duration: 3s;
+}
+
+.card-row.smaller-text span {
+    font-size: 16px;
+}
+
+.wild-color-selection {
+    position: absolute;
+    z-index: 1;
+    background: var(--dark);
+}
+
+.wild-color-selection[open=true] {
+    transform: translateY(0);
+    opacity: 1;
+    transition: 0.5s;
+    display: block;
+}
+.wild-color-selection[open=false] {
+    transform: translateY(25vh);
+    opacity: 0;
+    display: none;
+    pointer-events: none;
+    transition: 0.5s;
+}
+
+.draw-pile {
+    color: white;
+    border: 2px solid #666;
+    background: #666;
+    margin: 0;
+}
+
+.draw-pile:is(:hover, :focus) {
+    background: transparent;
+    cursor: pointer;
+}
+
+.draw-pile,
+.discard-pile {
+    cursor: default;
+    margin: 5px;
+}
+
+.draw-pile,
+.discard-pile {
+    color: white;
+    padding: 3vw;
+}
+
+:is(.discard-pile, .draw-pile):not(.fixed-size) {
+    width: revert;
+}
+
+:is(.discard-pile, .draw-pile).fixed-size {
+    text-align: center;
+    padding-inline: 0;
+}
+
+.discard-pile {
+    transition: 0s;
+    overflow: visible;
+}
+.discard-pile.bloop {
+    z-index: 1;
+    position: absolute;
+    box-sizing: border-box;
+    margin: -3px -2px;
+    transition: 0s;
+    opacity: 0;
+    outline: 2px solid var(--color);
+    border-color: transparent;
+    outline-offset: 10px;
+    transform: translate(-80px, -10px);
+}
+.discard-pile.bloop.begin {
+    transition: 0.7s;
+    opacity: 1;
+    outline: 2px solid transparent;
+    border-color: var(--color);
+    outline-offset: 0px;
+    transform: translate(0px, 0px);
+}
+
+input.discard-pile {
+    max-width: 90vw;
+    cursor: text;
+}
+input.discard-pile::selection {
+    color: var(--dark);
+    background: var(--color);
+    border-radius: 5px;
+}
