@@ -14,6 +14,8 @@ const listener = function (req, res) {
         console.log("Page Request: " + req.url.replace(/\\server/g, ""));
         // 404
         if (err) {
+            console.log('Error fulfilling request (returned 404)');
+            console.warn(err);
             res.setHeader("Content-Type", "text/html");
             if (req.url !== "/404" && req.url !== "/404.html") {
                 res.writeHead(404);
