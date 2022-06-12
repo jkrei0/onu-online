@@ -718,7 +718,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const port = process.argv[2] || 8080;
+const port = process.env.PORT || process.argv[2] || 8080;
 
 server.listen(port);
 console.log("Server listening on port " + port );
