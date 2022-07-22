@@ -112,9 +112,9 @@ const game = createApp({
             }
         });
         socket.on('player won', (name) => {
-            this.centerMessage = name;
-            this.selectWildColor = false;
             this.inProgress = false;
+            this.centerMessage = name + ' won!';
+            this.selectWildColor = false;
         });
         socket.on('show restart', () => {
             this.playAgainButton = true;
