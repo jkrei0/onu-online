@@ -11,3 +11,7 @@ Onu is an online clone of the card game Uno.
 - run `npm install` to install socket.io
 - For the default config run `npm start`
 - To set the port or debug level, run `node server/server.js PORT DEBUG_LEVEL`
+
+**Icons**
+
+Icons in this project are from [bootstrap icons](https://github.com/twbs/icons), also licensed under the MIT license, [here](https://github.com/twbs/icons/blob/main/LICENSE.md)
