@@ -4,14 +4,16 @@ const { Server } = require("socket.io");
 const { emit } = require('process');
 
 const listener = function (req, res) {
-    if (req.url === "/" || req.url == "/home" || req.url == "/editor") {
+    console.log("Page Request: ", req.url);
+
+    if (req.url === "/" || req.url == "/home" || req.url == "/index") {
         req.url = "/index.html";
 
         // prevent caching of the editor, as it breaks it in firefox and possibly other browsers.
         res.setHeader("Cache-Control", "no-store, must-revalidate");
     }
     fs.readFile(__dirname.replace(/(\\|\/)server/g, "") + "/public" + req.url.replace(/(\\|\/)server/g, ""), function (err,data) {
-        console.log("Page Request: " + req.url.replace(/\\server/g, ""));
+        console.log("Fulfilling Request: " + req.url.replace(/\\server/g, ""));
         // 404
         if (err) {
             console.log('Error fulfilling request (returned 404)');
@@ -271,15 +273,19 @@ function Game(code) {
         return set;
     }
     this.advance = () => {
+
+        console.log("HAND LENGTH ", this.players[this.currentPlayer].hand.length);
         
         if (this.players[this.currentPlayer].hand.length === 1) {
             console.log('player has uno');
             this.players[this.currentPlayer].unoTimer = Date.now();
             this.send('set players', this.getPlayers());
-        } else if (this.players[this.currentPlayer].hand.length === 0) {
-            this.send('player won', this.players[this.currentPlayer].name);
+
+        } else if (this.players[this.currentPlayer].hand.length < 1) {
             this.send('set players', this.getPlayers());
+            this.send('player won', this.players[this.currentPlayer].name);
             this.players[0].socket.emit('show restart');
+            return;
         }
 
         else debugLog('Game: Advancing to next player', 2);
