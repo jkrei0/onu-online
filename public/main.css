@@ -500,3 +500,7 @@ input.discard-pile::selection {
     background: var(--color);
     border-radius: 5px;
 }
+
+#name-code-input {
+    min-width: 400px;
+}
